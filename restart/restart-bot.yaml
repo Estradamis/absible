@@ -1,5 +1,22 @@
+---
 - name: Restart Amazon Vine Bot
-  hosts: all
+  hosts: your_host_or_group
+  become: true
   tasks:
     - name: Restart Amazon Vine Bot
-      shell: /home/ubuntu/rs.sh
+      shell: /home/ubumtu/rs.sh
+      register: script_output
+      ignore_errors: yes  # Ignore errors to continue playbook execution even if the script fails
+
+    - name: Check if restart was successful
+      set_fact:
+        restart_successful: "{{ script_output.stdout | regex_search('.*restarted with PID .*') }}"
+
+    - name: Send notification if restart was successful
+      when: restart_successful is not defined or restart_successful
+      community.general.telegram:
+        token: "{{ lookup('env', 'BOT_TOKEN') }}"
+        api_args:
+          chat_id: "{{ lookup('env', 'CHAT_ID') }}"
+          parse_mode: "markdown"
+          text: "The restart was successful on {{ ansible_hostname }} @ {{ inventory_hostname }} with PID {{ script_output.stdout.split(' ')[-1] }}"
