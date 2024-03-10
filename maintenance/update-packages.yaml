@@ -17,6 +17,10 @@
         get_checksum: no
       register: reboot_required_file
 
+    - name: Construct list of updated packages
+      set_fact:
+        updated_packages_list: "{{ apt_update_result.package_list | map(attribute='package') | list }}"
+
     - name: Send update information to Telegram
       community.general.telegram:
         token: "{{ lookup('env', 'BOT_TOKEN') }}"
@@ -25,10 +29,10 @@
           parse_mode: "markdown"
           text: |
             "({{ ansible_hostname }} @ {{ ansible_host }}) Packages have been Updated, Reboot {{ 'required' if reboot_required_file.stat.exists else 'NOT required' }}.\n\n
-            Number of updated packages: {{ apt_update_result | json_query('package_list | length') }}\n\n
+            Number of updated packages: {{ apt_update_result.package_list | length }}\n\n
             List of updated packages:\n
-            {% for package in apt_update_result.package_list %}
-              - {{ package.package }} ({{ package.current_version }} => {{ package.new_version }})
+            {% for package in updated_packages_list %}
+              - {{ package }}
             {% endfor %}"
 
 
