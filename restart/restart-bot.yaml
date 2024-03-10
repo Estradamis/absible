@@ -1,0 +1,5 @@
+- name: Restart Amazon Vine Bot
+  hosts: all
+  tasks:
+    - name: Restart Amazon Vine Bot
+      shell: /home/ubuntu/rs.sh
