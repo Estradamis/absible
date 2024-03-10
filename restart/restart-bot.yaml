@@ -1,6 +1,6 @@
 ---
 - name: Restart Amazon Vine Bot
-  hosts: your_host_or_group
+  hosts: all
   become: true
   tasks:
     - name: Restart Amazon Vine Bot
