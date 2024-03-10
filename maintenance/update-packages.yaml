@@ -8,31 +8,30 @@
       apt:
         upgrade: yes
         update_cache: yes
+      register: apt_update_result
+
+
     - name: Check if a reboot is required.
       ansible.builtin.stat:
         path: /var/run/reboot-required
         get_checksum: no
       register: reboot_required_file
-    - name: Send notify to Telegram
+
+    - name: Send update information to Telegram
       community.general.telegram:
         token: "{{ lookup('env', 'BOT_TOKEN') }}"
         api_args:
           chat_id: "{{ lookup('env', 'CHAT_ID') }}"
           parse_mode: "markdown"
-          text: "({{ ansible_hostname }} @ {{ ansible_host }}) Packages have been Updated, Reboot required"
-          disable_web_page_preview: true
-          disable_notification: true
-      when: reboot_required_file.stat.exists == true
-    - name: Send notify to Telegram
-      community.general.telegram:
-        token: "{{ lookup('env', 'BOT_TOKEN') }}"
-        api_args:
-          chat_id: "{{ lookup('env', 'CHAT_ID') }}"
-          parse_mode: "markdown"
-          text: "({{ ansible_hostname }} @ {{ ansible_host }}) Packages have been Updated, Reboot NOT required"
-          disable_web_page_preview: true
-          disable_notification: true
-      when: reboot_required_file.stat.exists == false
+          text: |
+            "({{ ansible_hostname }} @ {{ ansible_host }}) Packages have been Updated, Reboot {{ 'required' if reboot_required_file.stat.exists else 'NOT required' }}.\n\n
+            Number of updated packages: {{ apt_update_result | json_query('package_list | length') }}\n\n
+            List of updated packages:\n
+            {% for package in apt_update_result.package_list %}
+              - {{ package.package }} ({{ package.current_version }} => {{ package.new_version }})
+            {% endfor %}"
+
+
     - name: Remove dependencies that are no longer required.
       ansible.builtin.apt:
         autoremove: yes
